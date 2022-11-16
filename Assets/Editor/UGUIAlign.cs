@@ -87,7 +87,7 @@ public class UGUIAlign : Editor
         }
     }
 
-    //获取有序的选中GameObjects
+    //按选中顺序获取GameObjects
     private static GameObject[] GetOrderedSelctionObjs()
     {
         return Selection.objects.OfType<GameObject>().ToArray();
