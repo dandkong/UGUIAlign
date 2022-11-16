@@ -1,11 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 public class UGUIAlignWindow : EditorWindow
 {
-    private Dictionary<AlignType,Texture> alignTexture = new Dictionary<AlignType, Texture>(); 
+    private Dictionary<AlignType, Texture> alignTexture = new Dictionary<AlignType, Texture>();
     void OnEnable()
     {
         Texture leftTexture = Resources.Load<Texture>("Textures/Left");
@@ -25,7 +24,7 @@ public class UGUIAlignWindow : EditorWindow
         alignTexture.Add(AlignType.Horizontal, horizontalTexture);
         alignTexture.Add(AlignType.Vertical, verticalTexture);
     }
-    
+
     [MenuItem("UGUIAlign/Align")]
     public static UGUIAlignWindow GetWindow()
     {
@@ -38,21 +37,14 @@ public class UGUIAlignWindow : EditorWindow
 
     void OnGUI()
     {
-        GUILayout.BeginHorizontal();
         GUILayout.BeginVertical();
         for (int i = (int)AlignType.Top; i <= (int)AlignType.Vertical; i++)
         {
-            if (GUILayout.Button(alignTexture[(AlignType)i], "LargeButton"))
+            if (GUILayout.Button(alignTexture[(AlignType)i], GUILayout.Height(50)))
             {
                 UGUIAlign.Align((AlignType)i);
             }
-            if (i%3 == 0)
-            {
-                GUILayout.EndVertical();
-                GUILayout.BeginVertical();
-            }
         }
         GUILayout.EndVertical();
-        GUILayout.EndHorizontal();
     }
 }

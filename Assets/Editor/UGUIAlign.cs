@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -61,7 +61,7 @@ public class UGUIAlign : Editor
     public static void Align(AlignType type)
     {
         List<RectTransform> rects = new List<RectTransform>();
-        GameObject[] objects = Selection.gameObjects;
+        GameObject[] objects = GetOrderedSelctionObjs();
         if (objects != null && objects.Length > 0)
         {
             for (int i = 0; i < objects.Length; i++)
@@ -72,17 +72,32 @@ public class UGUIAlign : Editor
             }
         }
 
+        //如果只选中一个，对父节点对齐
+        if (rects.Count == 1)
+        {
+            if (rects[0].parent != null && rects[0].parent.GetComponent<RectTransform>() != null)
+            {
+                rects.Insert(0, rects[0].parent.GetComponent<RectTransform>());
+            }
+        }
+
         if (rects.Count > 1)
         {
             Align(type, rects);
         }
     }
-    
+
+    //获取有序的选中GameObjects
+    private static GameObject[] GetOrderedSelctionObjs()
+    {
+        return Selection.objects.OfType<GameObject>().ToArray();
+    }
+
     public static void Align(AlignType type, List<RectTransform> rects)
     {
         RectTransform tenplate = rects[0];
         float w = tenplate.sizeDelta.x * tenplate.lossyScale.x;
-        float h = tenplate.sizeDelta.y * tenplate.localScale.y;
+        float h = tenplate.sizeDelta.y * tenplate.lossyScale.y;
 
         float x = tenplate.position.x - tenplate.pivot.x * w;
         float y = tenplate.position.y - tenplate.pivot.y * h;
@@ -93,10 +108,10 @@ public class UGUIAlign : Editor
                 for (int i = 1; i < rects.Count; i++)
                 {
                     RectTransform trans = rects[i];
-                    float th = trans.sizeDelta.y * trans.localScale.y;
+                    float th = trans.sizeDelta.y * trans.lossyScale.y;
                     Vector3 pos = trans.position;
                     pos.y = y + h - th + trans.pivot.y * th;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.Left:
@@ -106,7 +121,7 @@ public class UGUIAlign : Editor
                     float tw = trans.sizeDelta.x * trans.lossyScale.x;
                     Vector3 pos = trans.position;
                     pos.x = x + tw * trans.pivot.x;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.Right:
@@ -116,17 +131,17 @@ public class UGUIAlign : Editor
                     float tw = trans.sizeDelta.x * trans.lossyScale.x;
                     Vector3 pos = trans.position;
                     pos.x = x + w - tw + tw * trans.pivot.x;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.Bottom:
                 for (int i = 1; i < rects.Count; i++)
                 {
                     RectTransform trans = rects[i];
-                    float th = trans.sizeDelta.y * trans.localScale.y;
+                    float th = trans.sizeDelta.y * trans.lossyScale.y;
                     Vector3 pos = trans.position;
                     pos.y = y + th * trans.pivot.y;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.HorizontalCenter:
@@ -136,46 +151,52 @@ public class UGUIAlign : Editor
                     float tw = trans.sizeDelta.x * trans.lossyScale.x;
                     Vector3 pos = trans.position;
                     pos.x = x + 0.5f * w - 0.5f * tw + tw * trans.pivot.x;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.VerticalCenter:
                 for (int i = 1; i < rects.Count; i++)
                 {
                     RectTransform trans = rects[i];
-                    float th = trans.sizeDelta.y * trans.localScale.y;
+                    float th = trans.sizeDelta.y * trans.lossyScale.y;
                     Vector3 pos = trans.position;
                     pos.y = y + 0.5f * h - 0.5f * th + th * trans.pivot.y;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.Horizontal:
                 float minX = GetMinX(rects);
                 float maxX = GetMaxX(rects);
                 rects.Sort(SortListRectTransformByX);
-                float distance = (maxX - minX)/(rects.Count - 1);
+                float distance = (maxX - minX) / (rects.Count - 1);
                 for (int i = 1; i < rects.Count - 1; i++)
                 {
                     RectTransform trans = rects[i];
                     Vector3 pos = trans.position;
                     pos.x = minX + i * distance;
-                    trans.position = pos;
+                    SetTranPos(trans, pos);
                 }
                 break;
             case AlignType.Vertical:
                 float minY = GetMinY(rects);
                 float maxY = GetMaxY(rects);
                 rects.Sort(SortListRectTransformByY);
-                float distanceY = (maxY - minY)/(rects.Count - 1);
+                float distanceY = (maxY - minY) / (rects.Count - 1);
                 for (int i = 1; i < rects.Count - 1; i++)
                 {
                     RectTransform trans = rects[i];
                     Vector3 pos = trans.position;
-                    pos.y = minY + i*distanceY;
-                    trans.position = pos;
+                    pos.y = minY + i * distanceY;
+                    SetTranPos(trans, pos);
                 }
                 break;
         }
+    }
+
+    private static void SetTranPos(Transform tran, Vector3 pos)
+    {
+        Undo.RecordObject(tran, "modify posstion");
+        tran.position = pos;
     }
 
     private static int SortListRectTransformByX(RectTransform r1, RectTransform r2)
